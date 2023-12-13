@@ -13,15 +13,15 @@ import java.util.List;
 @Builder
 public class Game extends BaseModel{
 
-    private GameStatus gameStatus;
+    public GameStatus gameStatus;
 
     @ManyToMany
-    private List<Team> teamList;
+    public List<Team> teamList;
 
     @ManyToOne
-    private Stadium stadium;
+    public Stadium stadium;
 
     @OneToMany(mappedBy = "game")
-    private List<Player> playerList;
+    public List<Player> playerList;
 
 }

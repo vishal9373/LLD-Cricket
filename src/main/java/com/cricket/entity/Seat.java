@@ -8,11 +8,11 @@ import lombok.Data;
 @Entity
 public class Seat extends BaseModel{
 
-    private String name;
+    public String name;
 
-    private SeatType seatType;
+    public SeatType seatType;
 
     @ManyToOne
-    private Stadium stadium;
+    public Stadium stadium;
 
 }

@@ -10,7 +10,7 @@ import java.util.List;
 @Entity
 public class City extends BaseModel {
 
-    private String name;
+    public String name;
     @OneToMany(mappedBy = "city")
-    private List<Stadium> stadium;
+    public List<Stadium> stadium;
 }

@@ -12,12 +12,12 @@ import java.util.List;
 @Builder
 public class ScoreBoard extends BaseModel{
 
-    private int noOfOvers;
+    public int noOfOvers;
 
-    private int noOfBowls;
+    public int noOfBowls;
 
-    private int noOfWickets;
+    public int noOfWickets;
 
-    private int runs;
+    public int runs;
 
 }

@@ -2,20 +2,22 @@ package com.cricket.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToOne;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Entity
+@Builder
 public class PlayerCard extends BaseModel{
 
-    private int noOfFours;
+    public int noOfFours;
 
-    private int noOfSixs;
+    public int noOfSixs;
 
-    private int totalRuns;
+    public int totalRuns;
 
-    private int noOfWickets;
+    public int noOfWickets;
 
     @OneToOne
-    private Player player;
+    public Player player;
 }

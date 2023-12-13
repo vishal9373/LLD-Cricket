@@ -14,18 +14,18 @@ import java.util.List;
 @Builder
 public class Team extends BaseModel{
 
-    private String name;
+    public String name;
 
-    private int totolRuns;
-    private int totalWickets;
+    public int totolRuns;
+    public int totalWickets;
 
-    private TeamType teamType;
+    public TeamType teamType;
 
     @OneToOne
-    private ScoreBoard scoreBoard;
+    public ScoreBoard scoreBoard;
 
     @OneToMany(mappedBy = "team")
-    private List<Player> playerList;
+    public List<Player> playerList;
 
-    private boolean isTossWon;
+    public Boolean isTossWon;
 }

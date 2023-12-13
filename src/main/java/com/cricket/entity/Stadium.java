@@ -10,15 +10,15 @@ import java.util.List;
 @Entity
 public class Stadium extends BaseModel{
 
-    private String name;
+    public String name;
 
     @OneToMany(mappedBy = "stadium")
-    private List<Game> game;
+    public List<Game> game;
 
     @ManyToOne
-    private City city;
+    public City city;
 
     @OneToMany(mappedBy = "stadium")
-    private List<Seat> seat;
+    public List<Seat> seat;
 
 }

@@ -10,18 +10,18 @@ import lombok.Data;
 @Builder
 public class Player extends BaseModel{
 
-    private String name;
+    public String name;
 
-    private int jerseyNumber;
+    public int jerseyNumber;
 
-    private PlayerType playerType;
+    public PlayerType playerType;
 
-    private PlayerStatus playerStatus;
-
-    @ManyToOne
-    private Team team;
+    public PlayerStatus playerStatus;
 
     @ManyToOne
-    private Game game;
+    public Team team;
+
+    @ManyToOne
+    public Game game;
 
 }
