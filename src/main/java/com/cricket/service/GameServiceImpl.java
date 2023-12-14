@@ -6,10 +6,8 @@ import com.cricket.dtos.*;
 import com.cricket.entity.*;
 import com.cricket.repository.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -45,70 +43,68 @@ public class GameServiceImpl implements GameService{
                     .build();
 
            game =  gameRepository.save(game);
+           saveTeams(gameRequestDto,game);
 
+            Response response = new Response();
+            response.setMessage("Game Created Successfully");
+            response.setData(game.id);
+            return  ResponseEntity.ok(response);
+    }
 
-            List<TeamRequestDto> teamRequestDtoList = gameRequestDto.getTeamRequestDtos();
-            List<Team> teamList = new ArrayList<>();
-            for(TeamRequestDto teamRequest : teamRequestDtoList){
+    private void saveTeams(GameRequestDto gameRequestDto,Game game) {
 
-                List<PlayerRequestDto> playerRequestDtoList = teamRequest.getPlayerRequestDtoList();
+        List<TeamRequestDto> teamRequestDtoList = gameRequestDto.getTeamRequestDtos();
+        List<Team> teamList = new ArrayList<>();
+        for(TeamRequestDto teamRequest : teamRequestDtoList){
 
+            List<PlayerRequestDto> playerRequestDtoList = teamRequest.getPlayerRequestDtoList();
 
-                System.out.println(teamRequest.getName() + " Toss: " + teamRequest.isTossWon());
+            Team  team = Team.builder()
+                    .isTossWon(teamRequest.isTossWon())
+                    .name(teamRequest.getName())
+                    .teamType(teamRequest.isTossWon() ? TeamType.BATTING : TeamType.BOWLING)
+                    .totolRuns(0)
+                    .totalWickets(0)
+                    .game(game)
+                    .build();
 
-                Team  team = Team.builder()
-                        .isTossWon(teamRequest.isTossWon())
-                        .name(teamRequest.getName())
-                        .teamType(teamRequest.isTossWon() ? TeamType.BATTING : TeamType.BOWLING)
-                        .totolRuns(0)
-                        .totalWickets(0)
+            teamList.add(team);
+            teamRepository.save(team);
+
+            ScoreBoard scoreBoard  = ScoreBoard.builder()
+                    .runs(0)
+                    .noOfBowls(0)
+                    .noOfOvers(0)
+                    .noOfWickets(0)
+                    .team(team)
+                    .build();
+
+            scoreBoardReository.save(scoreBoard);
+
+            List<Player> playerList = new ArrayList<>();
+            for(PlayerRequestDto playerRequestDto : playerRequestDtoList){
+                Player player = Player.builder()
+                        .name(playerRequestDto.getName())
+                        .playerStatus(PlayerStatus.valueOf(playerRequestDto.getPlayerStatus()))
+                        .playerType(PlayerType.valueOf(playerRequestDto.getPlayerType()))
+                        .jerseyNumber(playerRequestDto.getJerseyNumber())
                         .game(game)
-                        .build();
-
-                teamList.add(team);
-                teamRepository.save(team);
-
-                ScoreBoard scoreBoard  = ScoreBoard.builder()
-                        .runs(0)
-                        .noOfBowls(0)
-                        .noOfOvers(0)
-                        .noOfWickets(0)
                         .team(team)
                         .build();
 
-                scoreBoardReository.save(scoreBoard);
+                playerRepository.save(player);
+                PlayerCard playerCard = PlayerCard.builder()
+                        .noOfFours(0)
+                        .noOfSixs(0)
+                        .noOfWickets(0)
+                        .totalRuns(0)
+                        .player(player)
+                        .build();
 
-                List<Player> playerList = new ArrayList<>();
-                for(PlayerRequestDto playerRequestDto : playerRequestDtoList){
-                    Player player = Player.builder()
-                            .name(playerRequestDto.getName())
-                            .playerStatus(PlayerStatus.valueOf(playerRequestDto.getPlayerStatus()))
-                            .playerType(PlayerType.valueOf(playerRequestDto.getPlayerType()))
-                            .jerseyNumber(playerRequestDto.getJerseyNumber())
-                            .game(game)
-                            .team(team)
-                            .build();
-
-
-                    playerRepository.save(player);
-                    PlayerCard playerCard = PlayerCard.builder()
-                            .noOfFours(0)
-                            .noOfSixs(0)
-                            .noOfWickets(0)
-                            .totalRuns(0)
-                            .player(player)
-                            .build();
-
-                    playerCardRepository.save(playerCard);
-
-                }
-
+                playerCardRepository.save(playerCard);
             }
-
-
-            return new ResponseEntity<String>("Data added Successfully", HttpStatus.CREATED);
+        }
     }
-
 
 
     private void validateTeam(GameRequestDto gameRequestDto) {
@@ -186,16 +182,46 @@ public class GameServiceImpl implements GameService{
             }
         }
 
-        play(noOfOvers,battingplayers ,bowlingplayers,battingTeam);
+        play(noOfOvers,battingplayers ,bowlingplayers,battingTeam,bowlingTeam,inning);
 
+        if(inning == 2) {
+            checkForWin(bowlingTeam, battingTeam);
+        }
+    }
+
+    public void checkForWin(Team bowlingTeam,Team battingTeam){
+
+            ScoreBoard scoreBoardBowlingTeam = scoreBoardReository.findByTeamId(bowlingTeam.id);
+            ScoreBoard scoreBoardBattingTeam = scoreBoardReository.findByTeamId(battingTeam.id);
+
+            bowlingTeam.setTotalWickets(scoreBoardBowlingTeam.getNoOfWickets());
+            bowlingTeam.setTotolRuns(scoreBoardBowlingTeam.getRuns());
+
+            if (scoreBoardBowlingTeam.getRuns() > scoreBoardBattingTeam.getRuns()) {
+                bowlingTeam.setMatchStatus(MatchStatus.WON);
+                battingTeam.setMatchStatus(MatchStatus.LOSS);
+            } else if (scoreBoardBowlingTeam.getRuns() == scoreBoardBattingTeam.getRuns()) {
+                bowlingTeam.setMatchStatus(MatchStatus.TIE);
+                battingTeam.setMatchStatus(MatchStatus.TIE);
+            }
+            else{
+                bowlingTeam.setMatchStatus(MatchStatus.LOSS);
+                battingTeam.setMatchStatus(MatchStatus.TIE);
+            }
+
+
+            battingTeam.setTotalWickets(scoreBoardBattingTeam.getNoOfWickets());
+            battingTeam.setTotolRuns(scoreBoardBattingTeam.getRuns());
 
     }
 
     public void play(int noOfOvers,ConcurrentHashMap<Player,PlayerPosition> battingplayers,
-                     ConcurrentHashMap<Player,PlayerPosition> bowlingplayers ,Team battingTeam){
+                     ConcurrentHashMap<Player,PlayerPosition> bowlingplayers ,Team battingTeam,Team bowlingTeam,
+                        int inning){
         Random random = new Random();
         Player playerOnStrick = new Player();
         Player playerOnNonStrick = new Player();
+
 
         for(int olc=0;olc<noOfOvers;olc++){
             for(int ilc=0;ilc<6;ilc++){
@@ -250,7 +276,6 @@ public class GameServiceImpl implements GameService{
                 }
 
                 ScoreBoard scoreBoard = scoreBoardReository.findByTeamId(battingTeam.id);
-                System.out.println(scoreBoard);
                 scoreBoard.setNoOfOvers(olc);
                 scoreBoard.setNoOfBowls(ilc);
                 if(run == 7){
@@ -261,25 +286,41 @@ public class GameServiceImpl implements GameService{
 
                 scoreBoardReository.save(scoreBoard);
 
+                if(inning == 2){
+                    ScoreBoard bowling =  scoreBoardReository.findByTeamId(bowlingTeam.id);
+                    ScoreBoard batting =  scoreBoardReository.findByTeamId(battingTeam.id);
+
+                    if((batting.getRuns()) > bowling.getRuns()){
+                        return;
+                    }
+                }
+
                 if(battingplayers.size() < 2){
                     return;
                 }
             }
-
-
-            for(Map.Entry<Player,PlayerPosition> map : bowlingplayers.entrySet()){
-
-                if(map.getValue().equals(PlayerPosition.BOWLER)){
-                    bowlingplayers.remove(map.getKey());
-                }
-            }
-            for(Map.Entry<Player,PlayerPosition> map : bowlingplayers.entrySet()){
-                if(map.getValue().equals(PlayerPosition.YET_TO_PLAY)){
-                    bowlingplayers.put(map.getKey(),PlayerPosition.BOWLER);
-                }
-            }
+            changeBowler(bowlingplayers);
         }
     }
+
+    private void changeBowler(ConcurrentHashMap<Player, PlayerPosition> bowlingplayers) {
+        Player currentBowler = new Player();
+        for(Map.Entry<Player,PlayerPosition> map : bowlingplayers.entrySet()){
+
+            if(map.getValue().equals(PlayerPosition.BOWLER)){
+                currentBowler = map.getKey();
+            }
+        }
+        for(Map.Entry<Player,PlayerPosition> map : bowlingplayers.entrySet()){
+            if(map.getValue().equals(PlayerPosition.YET_TO_PLAY)){
+                bowlingplayers.put(map.getKey(),PlayerPosition.BOWLER);
+                break;
+            }
+
+        }
+        bowlingplayers.put(currentBowler,PlayerPosition.YET_TO_PLAY);
+    }
+
     @Override
     public ResponseEntity<?> startGame(GameDetailsDto gameDetailsDto) throws JsonProcessingException {
 
@@ -304,7 +345,7 @@ public class GameServiceImpl implements GameService{
              teamBatting = teamRepository.findByTeamTypeAndGameId(TeamType.BATTING,gameDetailsDto.getGameId());
              teamBowling = teamRepository.findByTeamTypeAndGameId(TeamType.BOWLING,gameDetailsDto.getGameId());
 
-            playInnings(teamBatting,teamBatting, gameDetailsDto.getNoOfOvers(),inning);
+            playInnings(teamBatting,teamBowling, gameDetailsDto.getNoOfOvers(),inning);
             inning+=1;
 
              teamBatting.setTeamType(TeamType.BOWLING);
@@ -317,6 +358,28 @@ public class GameServiceImpl implements GameService{
         game.get().setGameStatus(GameStatus.ENDED);
         gameRepository.save(game.get());
 
-        return new ResponseEntity<String>("Game has been Completed Successfully", HttpStatus.CREATED);
+        List<ScoreBoard> scoreBoardList = teamRepository.findScoreCard(game.get().id);
+
+        List<ScoreCardResponseDto> scoreCardResponseDtoList = new ArrayList<>();
+        for(ScoreBoard scoreBoard : scoreBoardList){
+
+            ScoreCardResponseDto scoreCardResponseDto = new ScoreCardResponseDto();
+            scoreCardResponseDto.setNoOfOvers(scoreBoard.getNoOfOvers());
+            scoreCardResponseDto.setNoOfRuns(scoreBoard.getRuns());
+            scoreCardResponseDto.setNoOfWickets(scoreBoard.getNoOfWickets());
+            scoreCardResponseDto.setTeamName(scoreBoard.getTeam().getName());
+
+            scoreCardResponseDtoList.add(scoreCardResponseDto);
+        }
+
+        MatchSummaryResponseDto matchSummaryResponseDto = new MatchSummaryResponseDto();
+        matchSummaryResponseDto.setGameId(game.get().id);
+        matchSummaryResponseDto.setScoreCardResponseDtoList(scoreCardResponseDtoList);
+
+        Response response = new Response();
+        response.setMessage("Game has been Completed Successfully");
+        response.setData(matchSummaryResponseDto);
+        return  ResponseEntity.ok(response);
+
     }
 }

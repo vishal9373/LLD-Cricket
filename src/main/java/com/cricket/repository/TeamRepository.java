@@ -1,5 +1,6 @@
 package com.cricket.repository;
 
+import com.cricket.entity.ScoreBoard;
 import com.cricket.entity.Team;
 import com.cricket.entity.TeamType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +16,8 @@ public interface TeamRepository extends JpaRepository<Team,Integer> {
 
     Team findByTeamTypeAndGameId(TeamType teamType,Integer gameId);
 
+    List<Team> findByGameId(Integer gameId);
 
-    @Query("SELECT s.team.name FROM ScoreBoard s  where s.runs = (SELECT MAX(s.runs) from ScoreBoard s WHERE s.team.game.id = :gameId)")
-    String findWinningTeam(Integer gameId);
+    @Query("SELECT s FROM ScoreBoard s WHERE s.team.game.id = :gameId")
+    List<ScoreBoard> findScoreCard(Integer gameId);
 }

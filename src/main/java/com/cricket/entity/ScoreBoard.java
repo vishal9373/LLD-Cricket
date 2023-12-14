@@ -2,11 +2,8 @@ package com.cricket.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import lombok.*;
-
-import java.util.List;
 
 @Entity
 @Builder

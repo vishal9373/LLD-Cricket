@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import lombok.*;
 
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Setter
-//@ToString
 @Getter
 public class Team extends BaseModel{
 
@@ -25,6 +23,8 @@ public class Team extends BaseModel{
     public int totalWickets;
 
     public TeamType teamType;
+
+    public MatchStatus matchStatus;
 
     @OneToMany(mappedBy = "team")
     @JsonIgnore

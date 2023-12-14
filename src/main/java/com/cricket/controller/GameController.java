@@ -20,16 +20,9 @@ public class GameController {
     @Autowired
     private GameService gameService;
 
-//    @GetMapping("/demo")
-//    public void test(){
-//        gameService.addGame();
-//    }
-
     @PostMapping("/")
     public ResponseEntity<?> addGames(@RequestBody GameRequestDto gameRequestDto){
-
         return gameService.addGame(gameRequestDto);
-
     }
 
     @PostMapping("/start")
