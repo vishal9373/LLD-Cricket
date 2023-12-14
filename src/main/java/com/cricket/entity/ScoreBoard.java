@@ -1,15 +1,20 @@
 package com.cricket.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
-import lombok.Builder;
-import lombok.Data;
+import jakarta.persistence.OneToOne;
+import lombok.*;
 
 import java.util.List;
 
-@Data
 @Entity
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Setter
+@Getter
+@ToString
 public class ScoreBoard extends BaseModel{
 
     public int noOfOvers;
@@ -19,5 +24,9 @@ public class ScoreBoard extends BaseModel{
     public int noOfWickets;
 
     public int runs;
+
+    @OneToOne
+    @JsonIgnore
+    public Team team;
 
 }

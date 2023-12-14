@@ -1,27 +1,30 @@
 package com.cricket.entity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.util.List;
 
-@Data
 @Entity
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Setter
+@ToString
+@Getter
 public class Game extends BaseModel{
 
     public GameStatus gameStatus;
 
-    @ManyToMany
+    @OneToMany(mappedBy = "game")
+    @JsonIgnore
     public List<Team> teamList;
 
-    @ManyToOne
-    public Stadium stadium;
-
     @OneToMany(mappedBy = "game")
+    @JsonIgnore
     public List<Player> playerList;
 
 }

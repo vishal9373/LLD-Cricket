@@ -1,17 +1,22 @@
 package com.cricket.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
-@Data
+
 @Entity
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Setter
+//@ToString
+@Getter
 public class Team extends BaseModel{
 
     public String name;
@@ -21,11 +26,13 @@ public class Team extends BaseModel{
 
     public TeamType teamType;
 
-    @OneToOne
-    public ScoreBoard scoreBoard;
-
     @OneToMany(mappedBy = "team")
+    @JsonIgnore
     public List<Player> playerList;
 
     public Boolean isTossWon;
+
+    @ManyToOne
+    @JsonIgnore
+    public Game game;
 }

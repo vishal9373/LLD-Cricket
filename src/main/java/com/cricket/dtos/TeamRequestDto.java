@@ -8,6 +8,6 @@ import java.util.List;
 public class TeamRequestDto {
 
     private String name;
-    private boolean isTossWon;
+    private boolean tossWon;
     private List<PlayerRequestDto> playerRequestDtoList;
 }
