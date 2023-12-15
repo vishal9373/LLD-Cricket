@@ -1,8 +1,9 @@
 package com.cricket.controller;
 
 
+import com.cricket.Constants.Constants;
+import com.cricket.dtos.Response;
 import com.cricket.service.MatchService;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +20,13 @@ public class MatchController {
 
     @GetMapping("/{gameId}")
     public ResponseEntity<?> matchResult(@PathVariable Integer gameId) {
-        return matchService.matchSummary(gameId);
+
+        String res = matchService.matchSummary(gameId);
+
+        Response response = new Response();
+        response.setMessage(Constants.MATCH_RESULT);
+        response.setData(res);
+
+        return ResponseEntity.ok(response);
     }
 }

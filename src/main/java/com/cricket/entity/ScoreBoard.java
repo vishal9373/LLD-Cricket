@@ -2,7 +2,7 @@ package com.cricket.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
 import lombok.*;
 
 @Entity
@@ -22,7 +22,7 @@ public class ScoreBoard extends BaseModel{
 
     public int runs;
 
-    @OneToOne
+    @ManyToOne
     @JsonIgnore
     public Team team;
 

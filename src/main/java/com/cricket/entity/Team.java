@@ -1,5 +1,7 @@
 package com.cricket.entity;
 
+import com.cricket.enums.MatchStatus;
+import com.cricket.enums.TeamType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
@@ -19,7 +21,7 @@ public class Team extends BaseModel{
 
     public String name;
 
-    public int totolRuns;
+    public int totalRuns;
     public int totalWickets;
 
     public TeamType teamType;
@@ -35,4 +37,8 @@ public class Team extends BaseModel{
     @ManyToOne
     @JsonIgnore
     public Game game;
+
+    @OneToMany(mappedBy = "team")
+    @JsonIgnore
+    public List<ScoreBoard> scoreBoard;
 }

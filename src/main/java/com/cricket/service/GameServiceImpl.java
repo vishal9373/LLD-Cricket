@@ -1,14 +1,14 @@
 package com.cricket.service;
 
+import com.cricket.Constants.Constants;
 import com.cricket.Exceptions.GameEndedException;
 import com.cricket.Exceptions.GameValidationException;
 import com.cricket.dtos.*;
 import com.cricket.entity.*;
+import com.cricket.enums.*;
 import com.cricket.repository.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -35,7 +35,7 @@ public class GameServiceImpl implements GameService{
 
     @Override
     @Transactional
-    public ResponseEntity<?> addGame(GameRequestDto gameRequestDto) {
+    public Integer addGame(GameRequestDto gameRequestDto) {
 
             validateTeam(gameRequestDto);
             Game game = Game.builder()
@@ -44,11 +44,7 @@ public class GameServiceImpl implements GameService{
 
            game =  gameRepository.save(game);
            saveTeams(gameRequestDto,game);
-
-            Response response = new Response();
-            response.setMessage("Game Created Successfully");
-            response.setData(game.id);
-            return  ResponseEntity.ok(response);
+            return  game.id;
     }
 
     private void saveTeams(GameRequestDto gameRequestDto,Game game) {
@@ -63,7 +59,7 @@ public class GameServiceImpl implements GameService{
                     .isTossWon(teamRequest.isTossWon())
                     .name(teamRequest.getName())
                     .teamType(teamRequest.isTossWon() ? TeamType.BATTING : TeamType.BOWLING)
-                    .totolRuns(0)
+                    .totalRuns(0)
                     .totalWickets(0)
                     .game(game)
                     .build();
@@ -71,38 +67,31 @@ public class GameServiceImpl implements GameService{
             teamList.add(team);
             teamRepository.save(team);
 
-            ScoreBoard scoreBoard  = ScoreBoard.builder()
-                    .runs(0)
-                    .noOfBowls(0)
-                    .noOfOvers(0)
-                    .noOfWickets(0)
+            savePlayers(game, playerRequestDtoList, team);
+        }
+    }
+
+    private void savePlayers(Game game, List<PlayerRequestDto> playerRequestDtoList, Team team) {
+        for(PlayerRequestDto playerRequestDto : playerRequestDtoList){
+            Player player = Player.builder()
+                    .name(playerRequestDto.getName())
+                    .playerStatus(PlayerStatus.valueOf(playerRequestDto.getPlayerStatus()))
+                    .playerType(PlayerType.valueOf(playerRequestDto.getPlayerType()))
+                    .jerseyNumber(playerRequestDto.getJerseyNumber())
+                    .game(game)
                     .team(team)
                     .build();
 
-            scoreBoardReository.save(scoreBoard);
+            playerRepository.save(player);
+            PlayerCard playerCard = PlayerCard.builder()
+                    .noOfFours(0)
+                    .noOfSixes(0)
+                    .noOfWickets(0)
+                    .totalRuns(0)
+                    .player(player)
+                    .build();
 
-            List<Player> playerList = new ArrayList<>();
-            for(PlayerRequestDto playerRequestDto : playerRequestDtoList){
-                Player player = Player.builder()
-                        .name(playerRequestDto.getName())
-                        .playerStatus(PlayerStatus.valueOf(playerRequestDto.getPlayerStatus()))
-                        .playerType(PlayerType.valueOf(playerRequestDto.getPlayerType()))
-                        .jerseyNumber(playerRequestDto.getJerseyNumber())
-                        .game(game)
-                        .team(team)
-                        .build();
-
-                playerRepository.save(player);
-                PlayerCard playerCard = PlayerCard.builder()
-                        .noOfFours(0)
-                        .noOfSixs(0)
-                        .noOfWickets(0)
-                        .totalRuns(0)
-                        .player(player)
-                        .build();
-
-                playerCardRepository.save(playerCard);
-            }
+            playerCardRepository.save(playerCard);
         }
     }
 
@@ -112,7 +101,7 @@ public class GameServiceImpl implements GameService{
         List<TeamRequestDto> teamRequestDtoList = gameRequestDto.getTeamRequestDtos();
 
         if(teamRequestDtoList.size() != 2){
-            throw new GameValidationException("There are no two Teams playing");
+            throw new GameValidationException(Constants.TEAM_PLAYING);
         }
 
         for(TeamRequestDto teamRequest : teamRequestDtoList){
@@ -120,7 +109,7 @@ public class GameServiceImpl implements GameService{
             List<PlayerRequestDto> playerRequestDtoList = teamRequest.getPlayerRequestDtoList();
 
             if(playerRequestDtoList.size() != 5){
-                throw new GameValidationException("There should be Five Players in a team");
+                throw new GameValidationException(Constants.PLAYER_EXCEPTION);
             }
 
             int iSubstituteCount = 0,iWicketKeeperCount=0;
@@ -133,11 +122,11 @@ public class GameServiceImpl implements GameService{
                 }
             }
             if(iSubstituteCount != 1){
-                throw new GameValidationException("There should be one substitute player");
+                throw new GameValidationException(Constants.SUBSTITUTE);
             }
 
             if(iWicketKeeperCount != 1){
-                throw new GameValidationException("There should be one wicket Keeper");
+                throw new GameValidationException(Constants.WICKET_KEEPER);
             }
         }
 
@@ -145,13 +134,40 @@ public class GameServiceImpl implements GameService{
 
     public void playInnings(Team battingTeam, Team bowlingTeam, int noOfOvers,int inning){
 
-        ConcurrentHashMap<Player,PlayerPosition> battingplayers = new ConcurrentHashMap<>();
+        ConcurrentHashMap<Player, PlayerPosition> battingplayers = new ConcurrentHashMap<>();
         ConcurrentHashMap<Player,PlayerPosition> bowlingplayers = new ConcurrentHashMap<>();
 
 
         List<Player> battingplayerList = battingTeam.getPlayerList();
         List<Player> bowlingplayerList = bowlingTeam.getPlayerList();
 
+        setPostionOfBatsMan(battingplayerList, battingplayers);
+        setPositionOfBowler(bowlingplayerList, bowlingplayers);
+
+        play(noOfOvers,battingplayers ,bowlingplayers,battingTeam,bowlingTeam,inning);
+
+        if(inning == 2) {
+            checkForWin(bowlingTeam, battingTeam);
+        }
+    }
+
+    private static void setPositionOfBowler(List<Player> bowlingplayerList, ConcurrentHashMap<Player, PlayerPosition> bowlingplayers) {
+        int count=0;
+        for(Player player : bowlingplayerList){
+            if (!player.getPlayerStatus().equals(PlayerStatus.SUBSTITUTE) && !player.getPlayerStatus().equals(PlayerStatus.INJURED)
+                    && !player.getPlayerType().equals(PlayerType.WICKET_KEEPER) ) {
+                if(count == 0) {
+                    bowlingplayers.put(player, PlayerPosition.BOWLER);
+                }
+                else{
+                    bowlingplayers.put(player, PlayerPosition.YET_TO_PLAY);
+                }
+                count+=1;
+            }
+        }
+    }
+
+    private static void setPostionOfBatsMan(List<Player> battingplayerList, ConcurrentHashMap<Player, PlayerPosition> battingplayers) {
         int count = 0;
         for(Player player : battingplayerList) {
             if (!player.getPlayerStatus().equals(PlayerStatus.SUBSTITUTE) && !player.getPlayerStatus().equals(PlayerStatus.INJURED)) {
@@ -167,40 +183,21 @@ public class GameServiceImpl implements GameService{
                 count+=1;
             }
         }
-
-        count=0;
-        for(Player player : bowlingplayerList){
-            if (!player.getPlayerStatus().equals(PlayerStatus.SUBSTITUTE) && !player.getPlayerStatus().equals(PlayerStatus.INJURED)
-                    && !player.getPlayerType().equals(PlayerType.WICKET_KEEPER) ) {
-                if(count == 0) {
-                    bowlingplayers.put(player, PlayerPosition.BOWLER);
-                }
-                else{
-                    bowlingplayers.put(player, PlayerPosition.YET_TO_PLAY);
-                }
-                count+=1;
-            }
-        }
-
-        play(noOfOvers,battingplayers ,bowlingplayers,battingTeam,bowlingTeam,inning);
-
-        if(inning == 2) {
-            checkForWin(bowlingTeam, battingTeam);
-        }
     }
 
     public void checkForWin(Team bowlingTeam,Team battingTeam){
 
-            ScoreBoard scoreBoardBowlingTeam = scoreBoardReository.findByTeamId(bowlingTeam.id);
-            ScoreBoard scoreBoardBattingTeam = scoreBoardReository.findByTeamId(battingTeam.id);
+        ScoreSummaryDto  scoreBoardBowlingTeam = scoreBoardReository.getSumOfRunsAndWicketsByTeamId(bowlingTeam.id);
+            ScoreSummaryDto  scoreBoardBattingTeam = scoreBoardReository.getSumOfRunsAndWicketsByTeamId(battingTeam.id);
 
-            bowlingTeam.setTotalWickets(scoreBoardBowlingTeam.getNoOfWickets());
-            bowlingTeam.setTotolRuns(scoreBoardBowlingTeam.getRuns());
 
-            if (scoreBoardBowlingTeam.getRuns() > scoreBoardBattingTeam.getRuns()) {
+            bowlingTeam.setTotalWickets(scoreBoardBowlingTeam.getTotalWickets().intValue());
+            bowlingTeam.setTotalRuns(scoreBoardBowlingTeam.getTotalRuns().intValue());
+
+            if (scoreBoardBowlingTeam.getTotalRuns() > scoreBoardBattingTeam.getTotalRuns()) {
                 bowlingTeam.setMatchStatus(MatchStatus.WON);
                 battingTeam.setMatchStatus(MatchStatus.LOSS);
-            } else if (scoreBoardBowlingTeam.getRuns() == scoreBoardBattingTeam.getRuns()) {
+            } else if (scoreBoardBowlingTeam.getTotalRuns() == scoreBoardBattingTeam.getTotalRuns()) {
                 bowlingTeam.setMatchStatus(MatchStatus.TIE);
                 battingTeam.setMatchStatus(MatchStatus.TIE);
             }
@@ -210,8 +207,8 @@ public class GameServiceImpl implements GameService{
             }
 
 
-            battingTeam.setTotalWickets(scoreBoardBattingTeam.getNoOfWickets());
-            battingTeam.setTotolRuns(scoreBoardBattingTeam.getRuns());
+            battingTeam.setTotalWickets(scoreBoardBattingTeam.getTotalWickets().intValue());
+            battingTeam.setTotalRuns(scoreBoardBattingTeam.getTotalRuns().intValue());
 
     }
 
@@ -219,78 +216,32 @@ public class GameServiceImpl implements GameService{
                      ConcurrentHashMap<Player,PlayerPosition> bowlingplayers ,Team battingTeam,Team bowlingTeam,
                         int inning){
         Random random = new Random();
-        Player playerOnStrick = new Player();
-        Player playerOnNonStrick = new Player();
+        Player playerOnStrike = new Player();
+        Player playerOnNonStrike = new Player();
 
 
-        for(int olc=0;olc<noOfOvers;olc++){
-            for(int ilc=0;ilc<6;ilc++){
+        for(int over=0;over<noOfOvers;over++){
+            for(int ball=0;ball<6;ball++){
                 int run = random.nextInt(8);
                 for(Map.Entry<Player,PlayerPosition> map : battingplayers.entrySet()){
                     if(map.getValue().equals(PlayerPosition.ON_STRICK)){
-                        playerOnStrick = map.getKey();
+                        playerOnStrike = map.getKey();
                     }
 
                     if(map.getValue().equals(PlayerPosition.ON_NON_STRICK)){
-                        playerOnNonStrick = map.getKey();
+                        playerOnNonStrike = map.getKey();
                     }
 
                 }
 
-                if(run != 7){
-                    PlayerCard playerCard = playerCardRepository.findByPlayerId(playerOnStrick.id);
-                    if(run == 4){
-                        playerCard.setNoOfFours(playerCard.getNoOfFours()+1);
-                    }
-                    if(run == 6){
-                        playerCard.setNoOfSixs(playerCard.getNoOfSixs()+1);
-                    }
-
-                    if(run == 1 || run == 3){
-                        battingplayers.put(playerOnNonStrick,PlayerPosition.ON_STRICK);
-                        battingplayers.put(playerOnStrick,PlayerPosition.ON_NON_STRICK);
-                    }
-
-                    playerCard.setTotalRuns(playerCard.getTotalRuns()+run);
-                    playerCardRepository.save(playerCard);
-
-                }
-                else{
-                    battingplayers.remove(playerOnStrick);
-
-                    for(Map.Entry<Player,PlayerPosition> map : battingplayers.entrySet()){
-                        if(map.getValue().equals(PlayerPosition.YET_TO_PLAY)){
-                            Player tempPlayer = map.getKey();
-                            battingplayers.put(tempPlayer,PlayerPosition.ON_STRICK);
-                            break;
-                        }
-                    }
-                    for(Map.Entry<Player,PlayerPosition> map : bowlingplayers.entrySet()){
-                        if(map.getValue().equals(PlayerPosition.BOWLER)){
-                            Player tempPlayer = map.getKey();
-                            PlayerCard playerCard = playerCardRepository.findByPlayerId(tempPlayer.id);
-                            playerCard.setNoOfWickets(playerCard.getNoOfWickets()+1);
-                            playerCardRepository.save(playerCard);
-                        }
-                    }
-                }
-
-                ScoreBoard scoreBoard = scoreBoardReository.findByTeamId(battingTeam.id);
-                scoreBoard.setNoOfOvers(olc);
-                scoreBoard.setNoOfBowls(ilc);
-                if(run == 7){
-                    scoreBoard.setNoOfWickets(scoreBoard.getNoOfWickets()+1);
-                }else{
-                    scoreBoard.setRuns(scoreBoard.getRuns()+run);
-                }
-
-                scoreBoardReository.save(scoreBoard);
+                setRuns(battingplayers, bowlingplayers, run, playerOnStrike, playerOnNonStrike);
+                setScoreBoard(battingTeam, over, ball, run);
 
                 if(inning == 2){
-                    ScoreBoard bowling =  scoreBoardReository.findByTeamId(bowlingTeam.id);
-                    ScoreBoard batting =  scoreBoardReository.findByTeamId(battingTeam.id);
+                    ScoreSummaryDto bowling = scoreBoardReository.getSumOfRunsAndWicketsByTeamId(bowlingTeam.id);
+                    ScoreSummaryDto  batting = scoreBoardReository.getSumOfRunsAndWicketsByTeamId(battingTeam.id);
 
-                    if((batting.getRuns()) > bowling.getRuns()){
+                    if(batting.getTotalRuns() > bowling.getTotalRuns()){
                         return;
                     }
                 }
@@ -300,6 +251,64 @@ public class GameServiceImpl implements GameService{
                 }
             }
             changeBowler(bowlingplayers);
+        }
+    }
+
+    private void setScoreBoard(Team battingTeam, int over, int ball, int run) {
+        ScoreBoard scoreBoard = new ScoreBoard();
+        scoreBoard.setNoOfOvers(over);
+        scoreBoard.setNoOfBowls(ball);
+        scoreBoard.setTeam(battingTeam);
+        if(run == 7){
+            scoreBoard.setNoOfWickets(1);
+        }else{
+            scoreBoard.setRuns(run);
+        }
+
+        scoreBoardReository.save(scoreBoard);
+    }
+
+    private void setRuns(ConcurrentHashMap<Player, PlayerPosition> battingplayers, ConcurrentHashMap<Player, PlayerPosition> bowlingplayers, int run, Player playerOnStrike, Player playerOnNonStrike) {
+        if(run != 7){
+            PlayerCard playerCard = playerCardRepository.findByPlayerId(playerOnStrike.id);
+            if(run == 4){
+                playerCard.setNoOfFours(playerCard.getNoOfFours()+1);
+            }
+            if(run == 6){
+                playerCard.setNoOfSixes(playerCard.getNoOfSixes()+1);
+            }
+
+            if(run == 1 || run == 3){
+                battingplayers.put(playerOnNonStrike,PlayerPosition.ON_STRICK);
+                battingplayers.put(playerOnStrike,PlayerPosition.ON_NON_STRICK);
+            }
+
+            playerCard.setTotalRuns(playerCard.getTotalRuns()+ run);
+            playerCardRepository.save(playerCard);
+
+        }
+        else{
+            manageWicket(battingplayers, bowlingplayers, playerOnStrike);
+        }
+    }
+
+    private void manageWicket(ConcurrentHashMap<Player, PlayerPosition> battingplayers, ConcurrentHashMap<Player, PlayerPosition> bowlingplayers, Player playerOnStrick) {
+        battingplayers.remove(playerOnStrick);
+
+        for(Map.Entry<Player,PlayerPosition> map : battingplayers.entrySet()){
+            if(map.getValue().equals(PlayerPosition.YET_TO_PLAY)){
+                Player tempPlayer = map.getKey();
+                battingplayers.put(tempPlayer,PlayerPosition.ON_STRICK);
+                break;
+            }
+        }
+        for(Map.Entry<Player,PlayerPosition> map : bowlingplayers.entrySet()){
+            if(map.getValue().equals(PlayerPosition.BOWLER)){
+                Player tempPlayer = map.getKey();
+                PlayerCard playerCard = playerCardRepository.findByPlayerId(tempPlayer.id);
+                playerCard.setNoOfWickets(playerCard.getNoOfWickets()+1);
+                playerCardRepository.save(playerCard);
+            }
         }
     }
 
@@ -322,31 +331,47 @@ public class GameServiceImpl implements GameService{
     }
 
     @Override
-    public ResponseEntity<?> startGame(GameDetailsDto gameDetailsDto) throws JsonProcessingException {
+    public MatchSummaryResponseDto startGame(GameDetailsDto gameDetailsDto){
 
-        Optional<Game> game = gameRepository.findById(gameDetailsDto.getGameId());
-        if(game.get().getGameStatus().equals(GameStatus.ENDED)){
-            throw new GameEndedException("Game has already beeen played ! you can't play same game again");
+        Optional<Game> game = playGame(gameDetailsDto);
+
+        List<Team> result = teamRepository.findByGameId(game.get().id);
+
+
+        List<ScoreCardResponseDto> scoreCardResponseDtoList = new ArrayList<>();
+        for(Team team : result){
+
+            ScoreCardResponseDto scoreCardResponseDto = new ScoreCardResponseDto();
+            scoreCardResponseDto.setNoOfRuns(team.getTotalRuns());
+            scoreCardResponseDto.setNoOfWickets(team.getTotalWickets());
+            scoreCardResponseDto.setTeamName(team.getName());
+
+            scoreCardResponseDtoList.add(scoreCardResponseDto);
         }
 
-        List<Team> teamList = game.get().getTeamList();
+        MatchSummaryResponseDto matchSummaryResponseDto = new MatchSummaryResponseDto();
+        matchSummaryResponseDto.setGameId(game.get().id);
+        matchSummaryResponseDto.setScoreCardResponseDtoList(scoreCardResponseDtoList);
 
-        Random random = new Random();
+        return  matchSummaryResponseDto;
 
-        HashMap<PlayerPosition,Player> hashMap = new HashMap<>();
+    }
 
-        Team teamBatting = new Team();
-        Team teamBowling = new Team();
+    private Optional<Game> playGame(GameDetailsDto gameDetailsDto) {
+        Optional<Game> game = gameRepository.findById(gameDetailsDto.getGameId());
+        if(game.get().getGameStatus().equals(GameStatus.ENDED)){
+            throw new GameEndedException(Constants.GAME_PLAYED);
+        }
 
+        Team teamBatting;
+        Team teamBowling;
 
-        int inning = 1;
-        for(Team team : teamList){
+        for(int inning=0;inning<2;inning++){
 
-             teamBatting = teamRepository.findByTeamTypeAndGameId(TeamType.BATTING,gameDetailsDto.getGameId());
-             teamBowling = teamRepository.findByTeamTypeAndGameId(TeamType.BOWLING,gameDetailsDto.getGameId());
+             teamBatting = teamRepository.findByTeamTypeAndGameId(TeamType.BATTING, gameDetailsDto.getGameId());
+             teamBowling = teamRepository.findByTeamTypeAndGameId(TeamType.BOWLING, gameDetailsDto.getGameId());
 
-            playInnings(teamBatting,teamBowling, gameDetailsDto.getNoOfOvers(),inning);
-            inning+=1;
+            playInnings(teamBatting,teamBowling, gameDetailsDto.getNoOfOvers(),inning+1);
 
              teamBatting.setTeamType(TeamType.BOWLING);
              teamBowling.setTeamType(TeamType.BATTING);
@@ -357,29 +382,6 @@ public class GameServiceImpl implements GameService{
 
         game.get().setGameStatus(GameStatus.ENDED);
         gameRepository.save(game.get());
-
-        List<ScoreBoard> scoreBoardList = teamRepository.findScoreCard(game.get().id);
-
-        List<ScoreCardResponseDto> scoreCardResponseDtoList = new ArrayList<>();
-        for(ScoreBoard scoreBoard : scoreBoardList){
-
-            ScoreCardResponseDto scoreCardResponseDto = new ScoreCardResponseDto();
-            scoreCardResponseDto.setNoOfOvers(scoreBoard.getNoOfOvers());
-            scoreCardResponseDto.setNoOfRuns(scoreBoard.getRuns());
-            scoreCardResponseDto.setNoOfWickets(scoreBoard.getNoOfWickets());
-            scoreCardResponseDto.setTeamName(scoreBoard.getTeam().getName());
-
-            scoreCardResponseDtoList.add(scoreCardResponseDto);
-        }
-
-        MatchSummaryResponseDto matchSummaryResponseDto = new MatchSummaryResponseDto();
-        matchSummaryResponseDto.setGameId(game.get().id);
-        matchSummaryResponseDto.setScoreCardResponseDtoList(scoreCardResponseDtoList);
-
-        Response response = new Response();
-        response.setMessage("Game has been Completed Successfully");
-        response.setData(matchSummaryResponseDto);
-        return  ResponseEntity.ok(response);
-
+        return game;
     }
 }

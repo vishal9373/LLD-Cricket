@@ -1,5 +1,8 @@
 package com.cricket.entity;
 
+import com.cricket.enums.PlayerPosition;
+import com.cricket.enums.PlayerStatus;
+import com.cricket.enums.PlayerType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;

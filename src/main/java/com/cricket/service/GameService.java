@@ -2,12 +2,11 @@ package com.cricket.service;
 
 import com.cricket.dtos.GameDetailsDto;
 import com.cricket.dtos.GameRequestDto;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.springframework.http.ResponseEntity;
+import com.cricket.dtos.MatchSummaryResponseDto;
 
 public interface GameService {
 
-    public ResponseEntity<?> addGame(GameRequestDto gameRequestDto);
+    Integer addGame(GameRequestDto gameRequestDto);
 
-    public ResponseEntity<?> startGame(GameDetailsDto gameDetailsDto) throws JsonProcessingException;
+    MatchSummaryResponseDto startGame(GameDetailsDto gameDetailsDto);
 }

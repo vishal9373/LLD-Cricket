@@ -1,8 +1,10 @@
 package com.cricket.service;
 
-import org.springframework.http.ResponseEntity;
+import com.cricket.dtos.PlayerDetailsResponseDto;
+
+import java.util.List;
 
 public interface PlayerService {
 
-     public ResponseEntity<?> playerDetails(Integer playerId);
+     List<PlayerDetailsResponseDto> playerDetails(Integer playerId);
 }

@@ -15,7 +15,7 @@ public class PlayerCard extends BaseModel{
 
     public int noOfFours;
 
-    public int noOfSixs;
+    public int noOfSixes;
 
     public int totalRuns;
 

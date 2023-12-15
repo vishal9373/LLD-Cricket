@@ -1,13 +1,10 @@
-package com.cricket.entity;
+package com.cricket.enums;
 
 public enum PlayerPosition {
 
-    WICKET,
     ON_STRICK,
     ON_NON_STRICK,
     YET_TO_PLAY,
     BOWLER,
-
-    HOLD
 
 }

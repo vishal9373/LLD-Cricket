@@ -8,7 +8,6 @@ import com.cricket.repository.GameRepository;
 import com.cricket.repository.PlayerCardRepository;
 import com.cricket.repository.PlayerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,7 +28,7 @@ public class PlayerServiceImpl implements PlayerService{
     private PlayerCardRepository playerCardRepository;
 
     @Override
-    public ResponseEntity<?> playerDetails(Integer gameId) {
+    public List<PlayerDetailsResponseDto> playerDetails(Integer gameId) {
         Optional<Game> game = gameRepository.findById(gameId);
 
         List<Player> playerList = playerRepository.findByGameId(game.get().id);
@@ -46,6 +45,6 @@ public class PlayerServiceImpl implements PlayerService{
 
             playerDetailsResponseDtoLis.add(playerDetailsResponseDto);
         }
-        return ResponseEntity.ok(playerDetailsResponseDtoLis);
+        return playerDetailsResponseDtoLis;
     }
 }

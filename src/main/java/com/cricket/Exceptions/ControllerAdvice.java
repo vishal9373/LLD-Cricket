@@ -2,21 +2,21 @@ package com.cricket.Exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.NoSuchElementException;
 
-@ControllerAdvice
-public class ControllerAdvisor extends ResponseEntityExceptionHandler {
+@RestControllerAdvice
+public class ControllerAdvice extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(GameValidationException.class)
     public ResponseEntity<String> handleGameValidation(GameValidationException gameValidationException){
         return new ResponseEntity<String>(gameValidationException.getMessage(), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<String> handleNoSuchElementException(NoSuchElementException noSuchElementException){
+    public ResponseEntity<String> handleNoSuchElementException(){
         return new ResponseEntity<String>("No Such Game Present", HttpStatus.NOT_FOUND);
     }
 

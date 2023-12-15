@@ -1,4 +1,5 @@
 package com.cricket.entity;
+import com.cricket.enums.GameStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
