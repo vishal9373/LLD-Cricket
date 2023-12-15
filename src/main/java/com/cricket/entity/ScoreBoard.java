@@ -22,6 +22,10 @@ public class ScoreBoard extends BaseModel{
 
     public int runs;
 
+    public int totalRuns;
+
+    public int totalWickets;
+
     @ManyToOne
     @JsonIgnore
     public Team team;

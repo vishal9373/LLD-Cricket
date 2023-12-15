@@ -134,17 +134,17 @@ public class GameServiceImpl implements GameService{
 
     public void playInnings(Team battingTeam, Team bowlingTeam, int noOfOvers,int inning){
 
-        ConcurrentHashMap<Player, PlayerPosition> battingplayers = new ConcurrentHashMap<>();
-        ConcurrentHashMap<Player,PlayerPosition> bowlingplayers = new ConcurrentHashMap<>();
+        ConcurrentHashMap<Player, PlayerPosition> battingPlayers = new ConcurrentHashMap<>();
+        ConcurrentHashMap<Player,PlayerPosition> bowlingPlayers = new ConcurrentHashMap<>();
 
 
         List<Player> battingplayerList = battingTeam.getPlayerList();
         List<Player> bowlingplayerList = bowlingTeam.getPlayerList();
 
-        setPostionOfBatsMan(battingplayerList, battingplayers);
-        setPositionOfBowler(bowlingplayerList, bowlingplayers);
+        setPostionOfBatsMan(battingplayerList, battingPlayers);
+        setPositionOfBowler(bowlingplayerList, bowlingPlayers);
 
-        play(noOfOvers,battingplayers ,bowlingplayers,battingTeam,bowlingTeam,inning);
+        play(noOfOvers,battingPlayers ,bowlingPlayers,battingTeam,bowlingTeam,inning);
 
         if(inning == 2) {
             checkForWin(bowlingTeam, battingTeam);
@@ -187,7 +187,7 @@ public class GameServiceImpl implements GameService{
 
     public void checkForWin(Team bowlingTeam,Team battingTeam){
 
-        ScoreSummaryDto  scoreBoardBowlingTeam = scoreBoardReository.getSumOfRunsAndWicketsByTeamId(bowlingTeam.id);
+            ScoreSummaryDto  scoreBoardBowlingTeam = scoreBoardReository.getSumOfRunsAndWicketsByTeamId(bowlingTeam.id);
             ScoreSummaryDto  scoreBoardBattingTeam = scoreBoardReository.getSumOfRunsAndWicketsByTeamId(battingTeam.id);
 
 
@@ -212,18 +212,17 @@ public class GameServiceImpl implements GameService{
 
     }
 
-    public void play(int noOfOvers,ConcurrentHashMap<Player,PlayerPosition> battingplayers,
-                     ConcurrentHashMap<Player,PlayerPosition> bowlingplayers ,Team battingTeam,Team bowlingTeam,
+    public void play(int noOfOvers,ConcurrentHashMap<Player,PlayerPosition> battingPlayers,
+                     ConcurrentHashMap<Player,PlayerPosition> bowlingPlayers ,Team battingTeam,Team bowlingTeam,
                         int inning){
         Random random = new Random();
         Player playerOnStrike = new Player();
         Player playerOnNonStrike = new Player();
 
-
         for(int over=0;over<noOfOvers;over++){
             for(int ball=0;ball<6;ball++){
                 int run = random.nextInt(8);
-                for(Map.Entry<Player,PlayerPosition> map : battingplayers.entrySet()){
+                for(Map.Entry<Player,PlayerPosition> map : battingPlayers.entrySet()){
                     if(map.getValue().equals(PlayerPosition.ON_STRICK)){
                         playerOnStrike = map.getKey();
                     }
@@ -234,7 +233,7 @@ public class GameServiceImpl implements GameService{
 
                 }
 
-                setRuns(battingplayers, bowlingplayers, run, playerOnStrike, playerOnNonStrike);
+                setRuns(battingPlayers, bowlingPlayers, run, playerOnStrike, playerOnNonStrike);
                 setScoreBoard(battingTeam, over, ball, run);
 
                 if(inning == 2){
@@ -246,26 +245,37 @@ public class GameServiceImpl implements GameService{
                     }
                 }
 
-                if(battingplayers.size() < 2){
+                if(battingPlayers.size() < 2){
                     return;
                 }
             }
-            changeBowler(bowlingplayers);
+            changeBowler(bowlingPlayers);
         }
     }
 
     private void setScoreBoard(Team battingTeam, int over, int ball, int run) {
-        ScoreBoard scoreBoard = new ScoreBoard();
-        scoreBoard.setNoOfOvers(over);
-        scoreBoard.setNoOfBowls(ball);
-        scoreBoard.setTeam(battingTeam);
+        ScoreBoard scoreBoard = scoreBoardReository.findLastScoreBoardByTeamId(battingTeam.id);
+        int totalRuns = scoreBoard != null ? scoreBoard.totalRuns : 0, totalWickets = scoreBoard != null ? scoreBoard.totalWickets : 0;
+        ScoreBoard setScoreBoard = new ScoreBoard();
+        setScoreBoard.setNoOfOvers(over+1);
+        setScoreBoard.setNoOfBowls(ball+1);
+        setScoreBoard.setTeam(battingTeam);
         if(run == 7){
-            scoreBoard.setNoOfWickets(1);
+            setScoreBoard.setNoOfWickets(1);
+            setScoreBoard.setTotalWickets(totalWickets+1);
+            totalWickets+=1;
+
         }else{
-            scoreBoard.setRuns(run);
+            setScoreBoard.setRuns(run);
+            setScoreBoard.setTotalRuns(totalRuns+run);
+            totalRuns+=run;
+
         }
 
-        scoreBoardReository.save(scoreBoard);
+        setScoreBoard.setTotalRuns(totalRuns);
+        setScoreBoard.setTotalWickets(totalWickets);
+
+        scoreBoardReository.save(setScoreBoard);
     }
 
     private void setRuns(ConcurrentHashMap<Player, PlayerPosition> battingplayers, ConcurrentHashMap<Player, PlayerPosition> bowlingplayers, int run, Player playerOnStrike, Player playerOnNonStrike) {

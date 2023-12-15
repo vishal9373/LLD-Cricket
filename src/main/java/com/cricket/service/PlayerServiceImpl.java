@@ -4,6 +4,8 @@ import com.cricket.dtos.PlayerDetailsResponseDto;
 import com.cricket.entity.Game;
 import com.cricket.entity.Player;
 import com.cricket.entity.PlayerCard;
+import com.cricket.enums.PlayerStatus;
+import com.cricket.enums.PlayerType;
 import com.cricket.repository.GameRepository;
 import com.cricket.repository.PlayerCardRepository;
 import com.cricket.repository.PlayerRepository;
@@ -37,13 +39,15 @@ public class PlayerServiceImpl implements PlayerService{
 
         for(Player player : playerList){
 
-            PlayerCard playerCard = playerCardRepository.findByPlayerId(player.id);
-            PlayerDetailsResponseDto playerDetailsResponseDto = new PlayerDetailsResponseDto();
-            playerDetailsResponseDto.setName(player.getName());
-            playerDetailsResponseDto.setWickets(playerCard.getNoOfWickets());
-            playerDetailsResponseDto.setRuns(playerCard.getTotalRuns());
+            if(!player.getPlayerStatus().equals(PlayerStatus.SUBSTITUTE)) {
+                PlayerCard playerCard = playerCardRepository.findByPlayerId(player.id);
+                PlayerDetailsResponseDto playerDetailsResponseDto = new PlayerDetailsResponseDto();
+                playerDetailsResponseDto.setName(player.getName());
+                playerDetailsResponseDto.setWickets(playerCard.getNoOfWickets());
+                playerDetailsResponseDto.setRuns(playerCard.getTotalRuns());
 
-            playerDetailsResponseDtoLis.add(playerDetailsResponseDto);
+                playerDetailsResponseDtoLis.add(playerDetailsResponseDto);
+            }
         }
         return playerDetailsResponseDtoLis;
     }

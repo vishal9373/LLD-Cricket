@@ -1,6 +1,7 @@
 package com.cricket.service;
 
 import com.cricket.entity.Team;
+import com.cricket.enums.MatchStatus;
 import com.cricket.repository.ScoreBoardReository;
 import com.cricket.repository.TeamRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,10 @@ public class MatchServiceImpl implements MatchService{
             return teamName + " has Won the Match " + " by " + wickets + " Wickets";
         }
 
-        return  " has Won the Match " + " by " + runs + " runs & " + wickets + " Wickets";
+        if(wickets <= 0){
+            return  teamName + " has Won the Match " + " by " + runs + " runs";
+        }
+
+        return  teamName + " has Won the Match " + " by " + runs + " runs & " + wickets + " Wickets";
     }
 }

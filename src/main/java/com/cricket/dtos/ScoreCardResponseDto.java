@@ -1,8 +1,13 @@
 package com.cricket.dtos;
 
-import lombok.Data;
+import lombok.*;
 
-@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Setter
+@ToString
+@Getter
 public class ScoreCardResponseDto {
 
     private int noOfRuns;

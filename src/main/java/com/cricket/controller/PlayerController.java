@@ -23,13 +23,7 @@ public class PlayerController {
 
     @GetMapping("/{playerId}")
     public ResponseEntity<?> playerDetails(@PathVariable Integer playerId) {
-
         List<PlayerDetailsResponseDto> playerDetailsResponseDtoList = playerService.playerDetails(playerId);
-
-        Response response = new Response();
-        response.setMessage(Constants.PLAYER_DETAILS);
-        response.setData(playerDetailsResponseDtoList);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Response.builder().data(playerDetailsResponseDtoList).message(Constants.PLAYER_DETAILS).build());
     }
 }

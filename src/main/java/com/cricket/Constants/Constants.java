@@ -11,4 +11,5 @@ public class Constants {
     public static String SUBSTITUTE = "There should be one substitute player";
     public static String WICKET_KEEPER = "There should be one wicket Keeper";
     public static String GAME_PLAYED = "Game has already beeen played ! you can't play same game again";
+    public static String SCORE_DETAILS = "ScoreCard Details Fetched Successfully";
 }

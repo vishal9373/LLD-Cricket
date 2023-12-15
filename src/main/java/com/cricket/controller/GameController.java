@@ -24,23 +24,13 @@ public class GameController {
     @PostMapping("/")
     public ResponseEntity<?> addGames(@RequestBody GameRequestDto gameRequestDto){
         Integer id =  gameService.addGame(gameRequestDto);
-
-        Response response = new Response();
-        response.setMessage(Constants.GAME_CREATED);
-        response.setData(id);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Response.builder().data(id).message(Constants.GAME_CREATED).build());
     }
 
     @PostMapping("/start")
     public ResponseEntity<?> startGame(@RequestBody GameDetailsDto gameDetailsDto){
         MatchSummaryResponseDto matchSummaryResponseDto =  gameService.startGame(gameDetailsDto);
-
-        Response response = new Response();
-        response.setMessage(Constants.GAME_COMPLETED);
-        response.setData(matchSummaryResponseDto);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Response.builder().data(matchSummaryResponseDto).message(Constants.GAME_COMPLETED).build());
 
     }
 }
